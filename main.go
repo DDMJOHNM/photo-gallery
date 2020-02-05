@@ -4,6 +4,11 @@ import(
 	"net/http"
 	"github.com/gorilla/mux"
 	"./views"
+
+	"database/sql"
+	"fmt"
+	_"github.com/lib/pq"
+
 	)
 
 
@@ -36,7 +41,31 @@ func must(err error)  {
 	}
 }
 
+const (
+	host = "localhost"
+	port = "5432"
+	user = "postgres"
+	password="postgres"
+	dbname="testgallerydb"
+)
+
 func main (){
+
+	psqlInfo := fmt.Sprintf("host=%s port=%d user=%s "+
+		"password=%s dbname=%s sslmode=disable",
+		host, port, user, password, dbname)
+	db ,err := sql.Open("postgres",psqlInfo)
+	if err != nil{
+		panic(err)
+	}
+	err = db.Ping()
+	if err != nil{
+		panic(err)
+	}
+
+	fmt.Print("Db successfully connected")
+	db.Close()
+
 
 	//var err error
 	homeView =	views.NewView("bootstrap","views/home.gohtml")
