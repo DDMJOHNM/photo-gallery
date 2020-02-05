@@ -1,44 +1,37 @@
 package main
 
 import(
-	"html/template"
 	"net/http"
 	"github.com/gorilla/mux"
+	"./views"
 	)
 
 
-var homeTemplate *template.Template
-var contactTemplate *template.Template
+var homeView *views.View
+var contactView *views.View
 
 func home(w http.ResponseWriter, r *http.Request){
 	w.Header().Set("Content-Type","text/html")
-	if err := homeTemplate.Execute(w,nil); err != nil{
-		panic(err)
-	}
+	must(homeView.Render(w,nil))
 
 }
 
 func contact(w http.ResponseWriter, r *http.Request){
 	w.Header().Set("Content-Type","text/html")
-	if err := contactTemplate.Execute(w,nil); err != nil{
+	must(contactView.Render(w,nil))
+}
+
+func must(err error)  {
+	if err != nil{
 		panic(err)
 	}
 }
 
-
-
 func main (){
 
-	var err error
-	homeTemplate, err = template.ParseFiles("views/home.gohtml")
-	if  err != nil{
-		panic(err)
-	}
-
-	contactTemplate, err = template.ParseFiles("views/contact.gohtml")
-	if  err != nil{
-		panic(err)
-	}
+	//var err error
+	homeView =	views.NewView("bootstrap","views/home.gohtml")
+	contactView =	views.NewView("bootstrap","views/contact.gohtml")
 
 	var h http.Handler = http.HandlerFunc(home)
 	r:= mux.NewRouter()
