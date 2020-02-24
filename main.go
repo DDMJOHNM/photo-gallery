@@ -41,9 +41,20 @@ func must(err error) {
 	}
 }
 
+func createOrder(db *gorm.DB, user User, amount int, desc string) {
+	db.Create(&Order{
+		UserID:      user.ID,
+		Amount:      amount,
+		Description: desc,
+	})
+	if db.Error != nil {
+		panic(db.Error)
+	}
+}
+
 const (
 	host     = "localhost"
-	port     = 5432
+	port     = 5555
 	user     = "postgres"
 	password = "postgres"
 	dbname   = "testgallerydb"
@@ -77,21 +88,35 @@ func main() {
 	defer us.Close()
 	us.DestructiveReset()
 
-	user := models.User{
+	/*user := models.User{
 		Name:  "Michael Scott",
 		Email: "michael@test.com",
 	}
 
-	if err := us.Create(&user); err != nil {
+	/*if err := us.Create(&user); err != nil {
 		fmt.Print(err.Error())
 	}
 
-	/*founduser, err := us.ByID(1)
+	user.Name = "Updated Name"
+	if err := us.Update(&user); err != nil {
+		panic(err)
+	}
+
+	founduser, err := us.ByID(1)
 	if err != nil {
 		panic(err)
 	}
 
-	fmt.Println(founduser)*/
+	fmt.Println(founduser)
+
+	/*foundUser, err := us.ByEmail("michael@test.com")
+	if err != nil {
+		panic(err)
+	}
+	// Because of an update, the name should now // be "Updated Name"
+	fmt.Println(foundUser)*/
+
+	//usersC := controllers.NewUsers(us)
 
 	homeView = views.NewView("bootstrap", "views/home.gohtml")
 	contactView = views.NewView("bootstrap", "views/contact.gohtml")
