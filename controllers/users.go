@@ -21,14 +21,14 @@ type Users struct {
 
 func NewUsers(us *models.UserService) *Users {
 	return &Users{
-		NewView: views.NewView("bootstrap"),
+		NewView: views.NewView("bootstrap", "users/new"),
 		us:      us,
 	}
 }
 
 func (u *Users) Create(w http.ResponseWriter, r *http.Request) {
 	var form SignupForm
-	if err := r.ParseForm(); err != nil {
+	if err := parseForm(r, &form); err != nil {
 		panic(err)
 	}
 

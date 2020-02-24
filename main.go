@@ -54,7 +54,7 @@ func createOrder(db *gorm.DB, user User, amount int, desc string) {
 
 const (
 	host     = "localhost"
-	port     = 5555
+	port     = 5432
 	user     = "postgres"
 	password = "postgres"
 	dbname   = "testgallerydb"
@@ -93,11 +93,11 @@ func main() {
 		Email: "michael@test.com",
 	}
 
-	/*if err := us.Create(&user); err != nil {
+	if err := us.Create(&user); err != nil {
 		fmt.Print(err.Error())
 	}
 
-	user.Name = "Updated Name"
+	/*user.Name = "Updated Name"
 	if err := us.Update(&user); err != nil {
 		panic(err)
 	}

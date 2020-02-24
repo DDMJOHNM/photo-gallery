@@ -9,7 +9,7 @@ import (
 
 const (
 	host     = "localhost"
-	port     = 5555
+	port     = 5432
 	user     = "postgres"
 	password = "postgres"
 	dbname   = "testgallerydb"
@@ -35,9 +35,18 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+
 	defer db.Close()
 	db.LogMode(true)
 	db.AutoMigrate(&User{}, &Order{})
+
+	us, err := models.NewUserService(psqlInfo)
+	if err != nil {
+		panic(err)
+	}
+
+	defer us.Close()
+	us.AutoMigrate()
 
 	var user User
 
