@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"net/http"
 
-	"../models"
 	"../views"
 )
 
@@ -16,31 +15,42 @@ type SignupForm struct {
 
 type Users struct {
 	NewView *views.View
-	us      *models.UserService
+	//us      *models.UserService
 }
 
-func NewUsers(us *models.UserService) *Users {
+func (u *Users) New(w http.ResponseWriter, r *http.Request) {
+	if err := u.NewView.Render(w, nil); err != nil {
+		panic(err)
+	}
+}
+
+func NewUsers( /*us *models.UserService*/ ) *Users {
 	return &Users{
 		NewView: views.NewView("bootstrap", "users/new"),
-		us:      us,
+		//us:      us,
 	}
 }
 
 func (u *Users) Create(w http.ResponseWriter, r *http.Request) {
+
 	var form SignupForm
 	if err := parseForm(r, &form); err != nil {
 		panic(err)
 	}
 
-	user := models.User{
-		Name:  form.Name,
-		Email: form.Email,
-	}
-
-	if err := u.us.Create(&user); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	fmt.Fprintln(w, "User is ", user)
-
+	fmt.Fprintln(w, "Email is", form.Email)
+	fmt.Fprintln(w, "Password is", form.Password)
 }
+
+// 	user := models.User{
+// 		Name:  form.Name,
+// 		Email: form.Email,
+// 	}
+
+// 	if err := u.us.Create(&user); err != nil {
+// 		http.Error(w, err.Error(), http.StatusInternalServerError)
+// 		return
+// 	}
+// 	fmt.Fprintln(w, "User is ", user)
+
+// }

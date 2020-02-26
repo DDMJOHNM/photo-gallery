@@ -3,6 +3,7 @@ package main
 import (
 	"net/http"
 
+	"./controllers"
 	"./models"
 	"./views"
 	"github.com/gorilla/mux"
@@ -14,26 +15,15 @@ import (
 )
 
 var (
-	homeView    *views.View
-	contactView *views.View
-	signupView  *views.View
+	home    *views.View
+	contact *views.View
+	//signupView  *views.View
 )
 
-func home(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "text/html")
-	must(homeView.Render(w, nil))
-
-}
-
-func contact(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "text/html")
-	must(contactView.Render(w, nil))
-}
-
-func signup(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "text/html")
-	must(signupView.Render(w, nil))
-}
+// func signup(w http.ResponseWriter, r *http.Request) {
+// 	w.Header().Set("Content-Type", "text/html")
+// 	must(signupView.Render(w, nil))
+// }
 
 func must(err error) {
 	if err != nil {
@@ -88,46 +78,19 @@ func main() {
 	defer us.Close()
 	us.DestructiveReset()
 
-	/*user := models.User{
-		Name:  "Michael Scott",
-		Email: "michael@test.com",
-	}
+	home = views.NewView("bootstrap", "home")
+	contact = views.NewView("bootstrap", "contact")
 
-	if err := us.Create(&user); err != nil {
-		fmt.Print(err.Error())
-	}
+	staticC := controllers.NewStatic()
+	usersC := controllers.NewUsers()
 
-	/*user.Name = "Updated Name"
-	if err := us.Update(&user); err != nil {
-		panic(err)
-	}
-
-	founduser, err := us.ByID(1)
-	if err != nil {
-		panic(err)
-	}
-
-	fmt.Println(founduser)
-
-	/*foundUser, err := us.ByEmail("michael@test.com")
-	if err != nil {
-		panic(err)
-	}
-	// Because of an update, the name should now // be "Updated Name"
-	fmt.Println(foundUser)*/
-
-	//usersC := controllers.NewUsers(us)
-
-	homeView = views.NewView("bootstrap", "views/home.gohtml")
-	contactView = views.NewView("bootstrap", "views/contact.gohtml")
-	signupView = views.NewView("bootstrap", "views/signup.gohtml")
-
-	var h http.Handler = http.HandlerFunc(home)
+	//var h http.Handler = http.HandlerFunc(home)
 	r := mux.NewRouter()
-	r.HandleFunc("/", home)
-	r.HandleFunc("/contact", contact)
-	r.HandleFunc("/signup", signup)
-	r.NotFoundHandler = h
+	r.Handle("/", staticC.Home).Methods("GET")
+	r.Handle("/contact", staticC.Contact).Methods("GET")
+	r.HandleFunc("/signup", usersC.New).Methods("GET")
+	r.HandleFunc("/signup", usersC.Create).Methods("POST")
+	//r.NotFoundHandler = h
 	http.ListenAndServe(":3000", r)
 }
 
