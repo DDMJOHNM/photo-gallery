@@ -82,7 +82,7 @@ func main() {
 	contact = views.NewView("bootstrap", "contact")
 
 	staticC := controllers.NewStatic()
-	usersC := controllers.NewUsers()
+	usersC := controllers.NewUsers(us)
 
 	//var h http.Handler = http.HandlerFunc(home)
 	r := mux.NewRouter()
