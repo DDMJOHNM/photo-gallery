@@ -2,6 +2,7 @@ package models
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/jinzhu/gorm"
 	"golang.org/x/crypto/bcrypt"
@@ -11,6 +12,11 @@ var userPepper = "secret-random-string"
 
 var (
 	ErrInvalidID = errors.New("models: id provided was invalid")
+)
+
+var (
+	ErrInvalidPassword = errors.New(
+		"models : incorrect password provided")
 )
 
 var (
@@ -70,7 +76,7 @@ func (us *UserService) ByID(id uint) (*User, error) {
 func (us *UserService) ByEmail(email string) (*User, error) {
 	var user User
 	db := us.db.Where("email=?", email)
-	err := first(db, user)
+	err := first(db, &user)
 	return &user, err
 }
 
@@ -110,4 +116,27 @@ func (us *UserService) AutoMigrate() error {
 		return err
 	}
 	return nil
+}
+
+func (us *UserService) Authenticate(email, password string) (*User, error) {
+
+	foundUser, err := us.ByEmail(email)
+	if err != nil {
+		return nil, err
+	}
+
+	err = bcrypt.CompareHashAndPassword(
+		[]byte(foundUser.PasswordHash),
+		[]byte(password+userPepper))
+
+	switch err {
+	case nil:
+		fmt.Print(foundUser)
+		return foundUser, nil
+	case bcrypt.ErrMismatchedHashAndPassword:
+		return nil, ErrInvalidPassword
+	default:
+		return nil, err
+	}
+
 }
