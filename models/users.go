@@ -138,5 +138,5 @@ func (us *UserService) Authenticate(email, password string) (*User, error) {
 	default:
 		return nil, err
 	}
-
+	return foundUser, nil
 }
