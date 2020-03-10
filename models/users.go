@@ -2,7 +2,6 @@ package models
 
 import (
 	"errors"
-	"fmt"
 
 	"github.com/jinzhu/gorm"
 	"golang.org/x/crypto/bcrypt"
@@ -30,7 +29,11 @@ type User struct {
 	Email        string `gorm:"not null;unique_index"`
 	Password     string `gorm:"-"`
 	PasswordHash string `gorm:"not null"`
+	Remember     string `gorm:"-"`
+	RememberHash string `gorm:"not null;unique_index"`
 }
+
+//page 310
 
 type UserService struct {
 	db *gorm.DB
@@ -131,7 +134,6 @@ func (us *UserService) Authenticate(email, password string) (*User, error) {
 
 	switch err {
 	case nil:
-		fmt.Print(foundUser)
 		return foundUser, nil
 	case bcrypt.ErrMismatchedHashAndPassword:
 		return nil, ErrInvalidPassword

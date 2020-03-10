@@ -3,12 +3,13 @@ package main
 import (
 	"net/http"
 
+	"fmt"
+
 	"./controllers"
+	"./hash"
 	"./models"
 	"./views"
 	"github.com/gorilla/mux"
-
-	"fmt"
 
 	"github.com/jinzhu/gorm"
 	_ "github.com/lib/pq"
@@ -66,6 +67,13 @@ type Order struct {
 
 func main() {
 
+	//fmt.Println(rand.String(10))
+	//fmt.Println(rand.RememberToken())
+
+	hmac := hash.NewHMAC("my-secret-key")
+	// This should print out: // 4waUFc1cnuxoM2oUOJfpGZLGP1asj35y7teuweSFgPY=
+	fmt.Println(hmac.Hash("this is my string to hash"))
+
 	psqlInfo := fmt.Sprintf("host=%s port=%d user=%s "+
 		"password=%s dbname=%s sslmode=disable",
 		host, port, user, password, dbname)
@@ -92,6 +100,7 @@ func main() {
 	r.HandleFunc("/signup", usersC.Create).Methods("POST")
 	r.Handle("/login", usersC.LoginView).Methods("GET")
 	r.HandleFunc("/login", usersC.Login).Methods("POST")
+	r.HandleFunc("/cookietest", usersC.CookieTest).Methods("GET")
 	http.ListenAndServe(":3000", r)
 
 }
