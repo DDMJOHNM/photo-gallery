@@ -27,6 +27,9 @@ var (
 	ErrNotFound = errors.New("models: resource not found")
 )
 
+var _ UserDB = &userGorm{}
+var _ UserService = &userService{}
+
 type User struct {
 	gorm.Model
 	Name         string
@@ -35,13 +38,41 @@ type User struct {
 	PasswordHash string `gorm:"not null"`
 	Remember     string `gorm:"-"`
 	RememberHash string `gorm:"not null;unique_index"`
+	UserDB
 }
 
-//page 310
+type userService struct {
+	UserDB
+}
 
-type UserService struct {
+type userGorm struct {
+	UserDB
 	db   *gorm.DB
 	hmac hash.HMAC
+}
+
+type userValidator struct {
+	UserDB
+}
+
+type UserDB interface {
+	ByID(id uint) (*User, error)
+	ByEmail(email string) (*User, error)
+	ByRemember(token string) (*User, error)
+
+	Create(user *User) error
+	Update(user *User) error
+	Delete(id uint) error
+
+	Close() error
+
+	AutoMigrate() error
+	DestructiveReset() error
+}
+
+type UserService interface {
+	Authenticate(email, password string) (*User, error)
+	UserDB
 }
 
 func first(db *gorm.DB, dst interface{}) error {
@@ -55,7 +86,7 @@ func first(db *gorm.DB, dst interface{}) error {
 	return err
 }
 
-func NewUserService(connectionInfo string) (*UserService, error) {
+func NewUserGorm(connectionInfo string) (*userGorm, error) {
 	db, err := gorm.Open("postgres", connectionInfo)
 	if err != nil {
 		return nil, err
@@ -63,19 +94,30 @@ func NewUserService(connectionInfo string) (*UserService, error) {
 	db.LogMode(true)
 	hmac := hash.NewHMAC(hmacSecretKey)
 	db.AutoMigrate(&User{})
-	return &UserService{
+	return &userGorm{
 		db:   db,
 		hmac: hmac,
 	}, nil
 }
 
-func (us *UserService) Close() error {
-	return us.db.Close()
+func NewUserService(connectionInfo string) (UserService, error) {
+	ug, err := NewUserGorm(connectionInfo)
+	if err != nil {
+		return nil, err
+	}
+	return &userService{
+		UserDB: &userValidator{
+			UserDB: ug},
+	}, nil
 }
 
-func (us *UserService) ByID(id uint) (*User, error) {
+func (us *userService) Close() error {
+	return us.UserDB.Close()
+}
+
+func (ug *userGorm) ByID(id uint) (*User, error) {
 	var user User
-	db := us.db.Where("id = ?", id)
+	db := ug.db.Where("id = ?", id)
 	err := first(db, &user)
 	if err != nil {
 		return nil, err
@@ -83,26 +125,26 @@ func (us *UserService) ByID(id uint) (*User, error) {
 	return &user, nil
 }
 
-func (us *UserService) ByEmail(email string) (*User, error) {
+func (ug *userGorm) ByEmail(email string) (*User, error) {
 	var user User
-	db := us.db.Where("email=?", email)
+	db := ug.db.Where("email=?", email)
 	err := first(db, &user)
 	return &user, err
 }
 
-func (us *UserService) ByRemember(token string)(*User, error){
+func (ug *userGorm) ByRemember(token string) (*User, error) {
 
 	var user User
-	rememberHash := us.hmac.Hash(token)
-	err := first(us.db.Where("remember_hash = ?",rememberHash),&user)
-	if err != nil{
+	rememberHash := ug.hmac.Hash(token)
+	err := first(ug.db.Where("remember_hash = ?", rememberHash), &user)
+	if err != nil {
 		return nil, err
 	}
 	return &user, nil
 
 }
 
-func (us *UserService) Create(user *User) error {
+func (ug *userGorm) Create(user *User) error {
 	pwBytes := []byte(user.Password + userPepper)
 	hashedBytes, err := bcrypt.GenerateFromPassword(
 		pwBytes, bcrypt.DefaultCost)
@@ -120,42 +162,42 @@ func (us *UserService) Create(user *User) error {
 		user.Remember = token
 	}
 
-	user.RememberHash = us.hmac.Hash(user.Remember)
+	user.RememberHash = ug.hmac.Hash(user.Remember)
 
-	return us.db.Create(user).Error
+	return ug.db.Create(user).Error
 }
 
-func (us *UserService) DestructiveReset() error {
-	err := us.db.DropTableIfExists(&User{}).Error
+func (ug *userGorm) DestructiveReset() error {
+	err := ug.db.DropTableIfExists(&User{}).Error
 	if err != nil {
 		return err
 	}
-	return us.AutoMigrate()
+	return ug.AutoMigrate()
 }
 
-func (us *UserService) Update(user *User) error {
+func (ug *userGorm) Update(user *User) error {
 
 	if user.Remember != "" {
-		user.RememberHash = us.hmac.Hash(user.Remember)
+		user.RememberHash = ug.hmac.Hash(user.Remember)
 	}
-	return us.db.Save(user).Error
+	return ug.db.Save(user).Error
 }
 
-func (us *UserService) Delete(id uint) error {
+func (ug *userGorm) Delete(id uint) error {
 	if id == 0 {
 		return ErrInvalidID
 	}
 	user := User{Model: gorm.Model{ID: id}}
-	return us.db.Delete(&user).Error
+	return ug.db.Delete(&user).Error
 }
-func (us *UserService) AutoMigrate() error {
-	if err := us.db.AutoMigrate(&User{}).Error; err != nil {
+func (ug *userGorm) AutoMigrate() error {
+	if err := ug.db.AutoMigrate(&User{}).Error; err != nil {
 		return err
 	}
 	return nil
 }
 
-func (us *UserService) Authenticate(email, password string) (*User, error) {
+func (us *userService) Authenticate(email, password string) (*User, error) {
 
 	foundUser, err := us.ByEmail(email)
 	if err != nil {

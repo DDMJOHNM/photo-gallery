@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"net/http"
 
-	"../rand"
 	"../models"
+	"../rand"
 	"../views"
 )
 
@@ -23,7 +23,7 @@ type LoginForm struct {
 type Users struct {
 	NewView   *views.View
 	LoginView *views.View
-	us        *models.UserService
+	us        models.UserService
 }
 
 func (u *Users) New(w http.ResponseWriter, r *http.Request) {
@@ -32,7 +32,7 @@ func (u *Users) New(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func NewUsers(us *models.UserService) *Users {
+func NewUsers(us models.UserService) *Users {
 	return &Users{
 		NewView:   views.NewView("bootstrap", "users/new"),
 		LoginView: views.NewView("bootstrap", "users/login"),
@@ -58,12 +58,12 @@ func (u *Users) Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	err := u.signIn(w, &user)
-	if err != nil{
-		http.Error(w,err.Error(),http.StatusInternalServerError)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	http.Redirect(w,r,"/cookietest",http.StatusNotFound)
+	http.Redirect(w, r, "/cookietest", http.StatusNotFound)
 
 }
 
@@ -87,14 +87,13 @@ func (u *Users) Login(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
-	err = u.signIn(w,user)
-	if err != nil{
-		http.Error(w,err.Error(), http.StatusInternalServerError)
+	err = u.signIn(w, user)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	http.Redirect(w,r,"/cookietest",http.StatusNotFound)
+	http.Redirect(w, r, "/cookietest", http.StatusNotFound)
 }
-
 
 func (u *Users) signIn(w http.ResponseWriter, user *models.User) error {
 
@@ -110,16 +109,15 @@ func (u *Users) signIn(w http.ResponseWriter, user *models.User) error {
 		}
 
 		cookie := http.Cookie{
-			Name:       "remember_token",
-			Value:      user.Remember,
-			HttpOnly:true,
+			Name:     "remember_token",
+			Value:    user.Remember,
+			HttpOnly: true,
 		}
 		http.SetCookie(w, &cookie)
 
 	}
 	return nil
 }
-
 
 func (u *Users) CookieTest(w http.ResponseWriter, r *http.Request) {
 	cookie, err := r.Cookie("remember_token")
@@ -128,10 +126,10 @@ func (u *Users) CookieTest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	user, err := u.us.ByRemember(cookie.Value)
-	if err != nil{
-		http.Error(w,err.Error(),http.StatusInternalServerError)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	fmt.Fprint(w,user)
+	fmt.Fprint(w, user)
 }
