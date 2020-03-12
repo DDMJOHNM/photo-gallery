@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-
+	"../models"
 	"github.com/jinzhu/gorm"
 	_ "github.com/lib/pq"
 )
@@ -31,39 +31,32 @@ func main() {
 	psqlInfo := fmt.Sprintf("host=%s port=%d user=%s "+
 		"password=%s dbname=%s sslmode=disable",
 		host, port, user, password, dbname)
-	db, err := gorm.Open("postgres", psqlInfo)
-	if err != nil {
-		panic(err)
-	}
+		us, err := models.NewUserService(psqlInfo)
+		if err != nil {
+			panic(err)
+		}
+		defer us.Close()
+		us.DestructiveReset()
+		user := models.User{
+			Name: "Michael Scott",
+			Email: "michael@dundermifflin.com",
+			Password: "bestboss",
+		}
+		err = us.Create(&user)
+		if err != nil {
+			panic(err)
+		}
+		// Verify that the user has a Remember and RememberHash
+		fmt.Printf("%+v\n", user)
+		if user.Remember == "" {
+			panic("Invalid remember token")
+		}
+		// Now verify that we can lookup a user with that remember
+		// token
+		user2, err := us.ByRemember(user.Remember)
+		if err != nil {
+			panic(err)
+		}
+		fmt.Printf("%+v\n", *user2)
 
-	defer db.Close()
-	db.LogMode(true)
-	db.AutoMigrate(&User{}, &Order{})
-
-	us, err := models.NewUserService(psqlInfo)
-	if err != nil {
-		panic(err)
-	}
-
-	defer us.Close()
-	us.AutoMigrate()
-
-	var user User
-
-	db.First(&user)
-	if db.Error != nil {
-		panic(db.Error)
-	}
-
-	//createOrder(db, user, 1001, "Fake Description #1")
-	//createOrder(db, user, 9999, "Fake Description #2")
-	//createOrder(db, user, 8800, "Fake Description #3")
-}
-func createOrder(db *gorm.DB, user User, amount int, desc string) {
-	db.Create(&Order{
-		UserID: user.ID, Amount: amount, Description: desc,
-	})
-	if db.Error != nil {
-		panic(db.Error)
-	}
 }

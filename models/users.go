@@ -3,11 +3,15 @@ package models
 import (
 	"errors"
 
+	"../hash"
+	"../rand"
 	"github.com/jinzhu/gorm"
 	"golang.org/x/crypto/bcrypt"
 )
 
 var userPepper = "secret-random-string"
+
+const hmacSecretKey = "secret-hmac-key"
 
 var (
 	ErrInvalidID = errors.New("models: id provided was invalid")
@@ -36,7 +40,8 @@ type User struct {
 //page 310
 
 type UserService struct {
-	db *gorm.DB
+	db   *gorm.DB
+	hmac hash.HMAC
 }
 
 func first(db *gorm.DB, dst interface{}) error {
@@ -56,9 +61,11 @@ func NewUserService(connectionInfo string) (*UserService, error) {
 		return nil, err
 	}
 	db.LogMode(true)
+	hmac := hash.NewHMAC(hmacSecretKey)
 	db.AutoMigrate(&User{})
 	return &UserService{
-		db: db,
+		db:   db,
+		hmac: hmac,
 	}, nil
 }
 
@@ -83,6 +90,18 @@ func (us *UserService) ByEmail(email string) (*User, error) {
 	return &user, err
 }
 
+func (us *UserService) ByRemember(token string)(*User, error){
+
+	var user User
+	rememberHash := us.hmac.Hash(token)
+	err := first(us.db.Where("remember_hash = ?",rememberHash),&user)
+	if err != nil{
+		return nil, err
+	}
+	return &user, nil
+
+}
+
 func (us *UserService) Create(user *User) error {
 	pwBytes := []byte(user.Password + userPepper)
 	hashedBytes, err := bcrypt.GenerateFromPassword(
@@ -92,6 +111,17 @@ func (us *UserService) Create(user *User) error {
 	}
 	user.PasswordHash = string(hashedBytes)
 	user.Password = ""
+
+	if user.Remember == "" {
+		token, err := rand.RememberToken()
+		if err != nil {
+			return err
+		}
+		user.Remember = token
+	}
+
+	user.RememberHash = us.hmac.Hash(user.Remember)
+
 	return us.db.Create(user).Error
 }
 
@@ -104,6 +134,10 @@ func (us *UserService) DestructiveReset() error {
 }
 
 func (us *UserService) Update(user *User) error {
+
+	if user.Remember != "" {
+		user.RememberHash = us.hmac.Hash(user.Remember)
+	}
 	return us.db.Save(user).Error
 }
 
