@@ -22,6 +22,8 @@ var (
 	ErrEmailTaken = errors.New("models: email address is already taken")
 	ErrPasswordTooShort = errors.New("models:password must"+ "be at least 8 characters long")
 	ErrPasswordRequired = errors.New("models : password is required")
+	ErrRememberRequired = errors.New("model : remember token" + "is required")
+	ErrRememberTooShort = errors.New("model : remember token" + "must be at least 32 bytes")
 )
 
 var _ UserDB = &userGorm{}
