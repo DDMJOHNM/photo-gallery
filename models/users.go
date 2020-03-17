@@ -2,8 +2,9 @@ package models
 
 import (
 	"errors"
-	"strings"
 	"regexp"
+	"strings"
+
 	"../hash"
 	"../rand"
 	"github.com/jinzhu/gorm"
@@ -15,15 +16,15 @@ var userPepper = "secret-random-string"
 const hmacSecretKey = "secret-hmac-key"
 
 var (
-	ErrIDInvalid = errors.New("models: id provided was invalid")
+	ErrIDInvalid         = errors.New("models: id provided was invalid")
 	ErrPasswordIncorrect = errors.New("models : incorrect password provided")
-	ErrNotFound = errors.New("models: resource not found")
-	ErrEmailRequired = errors.New("models: email address is required")
-	ErrEmailTaken = errors.New("models: email address is already taken")
-	ErrPasswordTooShort = errors.New("models:password must"+ "be at least 8 characters long")
-	ErrPasswordRequired = errors.New("models : password is required")
-	ErrRememberRequired = errors.New("model : remember token" + "is required")
-	ErrRememberTooShort = errors.New("model : remember token" + "must be at least 32 bytes")
+	ErrNotFound          = errors.New("models: resource not found")
+	ErrEmailRequired     = errors.New("models: email address is required")
+	ErrEmailTaken        = errors.New("models: email address is already taken")
+	ErrPasswordTooShort  = errors.New("models:password must" + "be at least 8 characters long")
+	ErrPasswordRequired  = errors.New("models : password is required")
+	ErrRememberRequired  = errors.New("model : remember token" + "is required")
+	ErrRememberTooShort  = errors.New("model : remember token" + "must be at least 32 bytes")
 )
 
 var _ UserDB = &userGorm{}
@@ -46,12 +47,12 @@ type userService struct {
 
 type userGorm struct {
 	UserDB
-	db   *gorm.DB
+	db *gorm.DB
 }
 
 type userValidator struct {
 	UserDB
-	hmac hash.HMAC
+	hmac       hash.HMAC
 	emailRegex *regexp.Regexp
 }
 
@@ -77,7 +78,6 @@ type UserService interface {
 
 type userValFn func(*User) error
 
-
 func first(db *gorm.DB, dst interface{}) error {
 	err := db.First(dst).Error
 	if err != nil {
@@ -98,15 +98,14 @@ func NewUserGorm(connectionInfo string) (*userGorm, error) {
 
 	db.AutoMigrate(&User{})
 	return &userGorm{
-		db:   db,
+		db: db,
 	}, nil
 }
 
-
-func newUserValidator(udb UserDB,hmac hash.HMAC) *userValidator{
+func newUserValidator(udb UserDB, hmac hash.HMAC) *userValidator {
 	return &userValidator{
-		UserDB:     udb,
-		hmac:       hmac,
+		UserDB: udb,
+		hmac:   hmac,
 		emailRegex: regexp.MustCompile(
 			`^[a-z0-9._%+\-]+@[a-z0-9.\-]+\.[a-z]{2,16}$`),
 	}
@@ -118,7 +117,7 @@ func NewUserService(connectionInfo string) (UserService, error) {
 		return nil, err
 	}
 	hmac := hash.NewHMAC(hmacSecretKey)
-	uv:= newUserValidator(ug,hmac)
+	uv := newUserValidator(ug, hmac)
 	return &userService{
 		UserDB: uv,
 	}, nil
@@ -155,7 +154,6 @@ func (ug *userGorm) ByRemember(rememberHash string) (*User, error) {
 	return &user, nil
 
 }
-
 
 func (ug *userGorm) Create(user *User) error {
 	return ug.db.Create(user).Error
@@ -206,45 +204,42 @@ func (us *userService) Authenticate(email, password string) (*User, error) {
 	return foundUser, nil
 }
 
-func (uv *userValidator)ByRemember(token string)(*User, error){
+func (uv *userValidator) ByRemember(token string) (*User, error) {
 	user := User{
 		Remember: token,
 	}
-	if err := runUserValFns(&user,uv.hmacRemember); err != nil{
+	if err := runUserValFns(&user, uv.hmacRemember); err != nil {
 		return nil, err
 	}
 	return uv.UserDB.ByRemember(user.RememberHash)
 }
-
 
 func (uv *userValidator) bcryptPassword(user *User) error {
 
 	if user.Password == "" {
 		return nil
 	}
-		pwBytes := []byte(user.Password + userPepper)
-		hashedBytes, err := bcrypt.GenerateFromPassword(
-			pwBytes, bcrypt.DefaultCost)
-		if err != nil {
-			return err
-		}
-		user.PasswordHash = string(hashedBytes)
-		user.Password = ""
-		return nil
-
+	pwBytes := []byte(user.Password + userPepper)
+	hashedBytes, err := bcrypt.GenerateFromPassword(
+		pwBytes, bcrypt.DefaultCost)
+	if err != nil {
+		return err
+	}
+	user.PasswordHash = string(hashedBytes)
+	user.Password = ""
+	return nil
 
 	return nil
 
 }
 
-func (uv *userValidator) hmacRemember (user *User) error{
-	if user.Remember == ""{
+func (uv *userValidator) hmacRemember(user *User) error {
+	if user.Remember == "" {
 		return nil
 	}
 	user.RememberHash = uv.hmac.Hash(user.Remember)
 	return nil
 }
-
 
 func (uv *userValidator) Create(user *User) error {
 	if user.Remember == "" {
@@ -259,6 +254,7 @@ func (uv *userValidator) Create(user *User) error {
 		uv.bcryptPassword,
 		uv.passHashRequired,
 		uv.hmacRemember,
+		uv.rememberHashRequired,
 		uv.setRememberIfUnset,
 		uv.normalizeEmail,
 		uv.requireEmail,
@@ -270,30 +266,30 @@ func (uv *userValidator) Create(user *User) error {
 	return uv.UserDB.Create(user)
 }
 
-func (uv *userValidator) Update(user *User) error{
+func (uv *userValidator) Update(user *User) error {
 	err := runUserValFns(user,
 		uv.passwordMinLength,
 		uv.bcryptPassword,
 		uv.passHashRequired,
 		uv.hmacRemember,
+		uv.rememberHashRequired,
 		uv.normalizeEmail,
 		uv.requireEmail,
 		uv.emailFormat,
 		uv.emailIsAvail,
 		uv.emailIsAvail)
-	if err != nil{
+	if err != nil {
 		return err
 	}
 	return uv.UserDB.Update(user)
 }
 
-
-func (uv *userValidator) setRememberIfUnset(user *User)error {
-	if user.Remember != ""{
+func (uv *userValidator) setRememberIfUnset(user *User) error {
+	if user.Remember != "" {
 		return nil
 	}
 	token, err := rand.RememberToken()
-	if err != nil{
+	if err != nil {
 		return err
 	}
 	user.Remember = token
@@ -301,77 +297,77 @@ func (uv *userValidator) setRememberIfUnset(user *User)error {
 }
 
 func runUserValFns(user *User, fns ...userValFn) error {
-	for _, fn := range fns{
-		if err := fn(user); err != nil{
+	for _, fn := range fns {
+		if err := fn(user); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func (uv *userValidator) idGreaterThan(n uint) userValFn{
-	return userValFn(func(user *User) error{
-		if user.ID <= n{
+func (uv *userValidator) idGreaterThan(n uint) userValFn {
+	return userValFn(func(user *User) error {
+		if user.ID <= n {
 			return ErrIDInvalid
 		}
 		return nil
 	})
 }
 
-func (uv *userValidator) Delete(id uint) error{
+func (uv *userValidator) Delete(id uint) error {
 
 	var user User
 	user.ID = id
 
-	err := runUserValFns(&user,uv.idGreaterThan(0))
-	if err != nil{
+	err := runUserValFns(&user, uv.idGreaterThan(0))
+	if err != nil {
 		return err
 	}
 	return uv.UserDB.Delete(id)
 }
 
-func (uv *userValidator) normalizeEmail(user *User) error{
+func (uv *userValidator) normalizeEmail(user *User) error {
 	user.Email = strings.ToLower(user.Email)
 	user.Email = strings.TrimSpace(user.Email)
 	return nil
 }
 
-func (uv * userValidator) ByEmail(email string)(*User, error){
+func (uv *userValidator) ByEmail(email string) (*User, error) {
 	user := User{
-		Email : email,
+		Email: email,
 	}
 	err := runUserValFns(&user, uv.normalizeEmail)
-	if err != nil{
-		return nil , err
+	if err != nil {
+		return nil, err
 	}
 
 	return uv.UserDB.ByEmail(user.Email)
 }
 
-func (uv *userValidator) requireEmail(user *User) error{
-	if user.Email == ""{
+func (uv *userValidator) requireEmail(user *User) error {
+	if user.Email == "" {
 		return ErrEmailRequired
 	}
 	return nil
 }
 
-func (uv *userValidator) emailFormat(user *User) error{
-	if user.Email == ""{
+func (uv *userValidator) emailFormat(user *User) error {
+	if user.Email == "" {
 		return nil
 	}
-	if !uv.emailRegex.MatchString(user.Email){
+	if !uv.emailRegex.MatchString(user.Email) {
 		return ErrEmailRequired
 	}
 	return nil
 }
 
-func (uv *userValidator) emailIsAvail(user *User) error{
+func (uv *userValidator) emailIsAvail(user *User) error {
 	existing, err := uv.ByEmail(user.Email)
-	if  err == ErrNotFound{
+	if err == ErrNotFound {
 		return nil
 	}
 
-	if err != nil{
+	if err != nil {
 		return err
 	}
 
@@ -381,8 +377,8 @@ func (uv *userValidator) emailIsAvail(user *User) error{
 	return nil
 }
 
-func (uv *userValidator) passwordMinLength(user *User) error{
-	if user.Password == ""{
+func (uv *userValidator) passwordMinLength(user *User) error {
+	if user.Password == "" {
 		return nil
 	}
 	if len(user.Password) < 8 {
@@ -391,16 +387,38 @@ func (uv *userValidator) passwordMinLength(user *User) error{
 	return nil
 }
 
-func (uv *userValidator) passwordRequired (user *User) error{
-	if user.Password == ""{
+func (uv *userValidator) passwordRequired(user *User) error {
+	if user.Password == "" {
 		return ErrPasswordRequired
 	}
 	return nil
 }
 
-func (uv *userValidator) passHashRequired (user *User) error{
-	if user.PasswordHash == ""{
+func (uv *userValidator) passHashRequired(user *User) error {
+	if user.PasswordHash == "" {
 		return ErrPasswordRequired
 	}
+	return nil
+}
+
+func (uv *userValidator) rememberMinBytes(user *User) error {
+	if user.Remember == "" {
+		return nil
+	}
+	n, err := rand.NBytes(user.Remember)
+	if err != nil {
+		return err
+	}
+	if n < 32 {
+		return ErrRememberTooShort
+	}
+	return nil
+}
+
+func (uv *userValidator) rememberHashRequired(user *User) error {
+	if user.Remember == "" {
+		return ErrRememberRequired
+	}
+
 	return nil
 }
