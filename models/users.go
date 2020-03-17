@@ -1,7 +1,6 @@
 package models
 
 import (
-	"errors"
 	"regexp"
 	"strings"
 
@@ -15,16 +14,18 @@ var userPepper = "secret-random-string"
 
 const hmacSecretKey = "secret-hmac-key"
 
-var (
-	ErrIDInvalid         = errors.New("models: id provided was invalid")
-	ErrPasswordIncorrect = errors.New("models : incorrect password provided")
-	ErrNotFound          = errors.New("models: resource not found")
-	ErrEmailRequired     = errors.New("models: email address is required")
-	ErrEmailTaken        = errors.New("models: email address is already taken")
-	ErrPasswordTooShort  = errors.New("models:password must" + "be at least 8 characters long")
-	ErrPasswordRequired  = errors.New("models : password is required")
-	ErrRememberRequired  = errors.New("model : remember token" + "is required")
-	ErrRememberTooShort  = errors.New("model : remember token" + "must be at least 32 bytes")
+type modelError string
+
+const (
+	ErrIDInvalid         modelError = "models: id provided was invalid"
+	ErrPasswordIncorrect modelError = "models: incorrect password provided"
+	ErrNotFound          modelError = "models: resource not found"
+	ErrEmailRequired     modelError = "models: email address is required"
+	ErrEmailTaken        modelError = "models: email address is already taken"
+	ErrPasswordTooShort  modelError = "models: password must" + "be at least 8 characters long"
+	ErrRememberTooShort  modelError = "models: remember token must be at 32 bytes"
+	ErrPasswordRequired  modelError = "models: password is required"
+	ErrRememberRequired  modelError = "models: remember token" + "is required"
 )
 
 var _ UserDB = &userGorm{}
@@ -77,6 +78,17 @@ type UserService interface {
 }
 
 type userValFn func(*User) error
+
+func (e modelError) Error() string {
+	return string(e)
+}
+
+func (e modelError) Public() string {
+	s := strings.Replace(string(e), "models: ", "", 1)
+	split := strings.Split(s, " ")
+	split[0] = strings.Title(split[0])
+	return strings.Join(split, " ")
+}
 
 func first(db *gorm.DB, dst interface{}) error {
 	err := db.First(dst).Error
