@@ -44,6 +44,7 @@ type User struct {
 
 type userService struct {
 	UserDB
+	db *gorm.DB
 }
 
 type userGorm struct {
@@ -65,11 +66,6 @@ type UserDB interface {
 	Create(user *User) error
 	Update(user *User) error
 	Delete(id uint) error
-
-	Close() error
-
-	AutoMigrate() error
-	DestructiveReset() error
 }
 
 type UserService interface {
@@ -101,19 +97,6 @@ func first(db *gorm.DB, dst interface{}) error {
 	return err
 }
 
-func NewUserGorm(connectionInfo string) (*userGorm, error) {
-	db, err := gorm.Open("postgres", connectionInfo)
-	if err != nil {
-		return nil, err
-	}
-	db.LogMode(true)
-
-	db.AutoMigrate(&User{})
-	return &userGorm{
-		db: db,
-	}, nil
-}
-
 func newUserValidator(udb UserDB, hmac hash.HMAC) *userValidator {
 	return &userValidator{
 		UserDB: udb,
@@ -123,20 +106,18 @@ func newUserValidator(udb UserDB, hmac hash.HMAC) *userValidator {
 	}
 }
 
-func NewUserService(connectionInfo string) (UserService, error) {
-	ug, err := NewUserGorm(connectionInfo)
-	if err != nil {
-		return nil, err
-	}
-	hmac := hash.NewHMAC(hmacSecretKey)
-	uv := newUserValidator(ug, hmac)
-	return &userService{
-		UserDB: uv,
-	}, nil
+func (us *userService) Close() error {
+	return us.Close()
 }
 
-func (us *userService) Close() error {
-	return us.UserDB.Close()
+func NewUserService(db *gorm.DB) UserService {
+	ug := &userGorm{}
+	//don't need to worry about this as is already done with original db connection
+	//hmac := hash.NewHMAC(hmacSecretKey)
+	//uv := newUserValidator(ug, hmac)
+	return &userService{
+		UserDB: ug,
+	}
 }
 
 func (ug *userGorm) ByID(id uint) (*User, error) {
@@ -171,14 +152,6 @@ func (ug *userGorm) Create(user *User) error {
 	return ug.db.Create(user).Error
 }
 
-func (ug *userGorm) DestructiveReset() error {
-	err := ug.db.DropTableIfExists(&User{}).Error
-	if err != nil {
-		return err
-	}
-	return ug.AutoMigrate()
-}
-
 func (ug *userGorm) Update(user *User) error {
 	return ug.db.Save(user).Error
 }
@@ -186,12 +159,6 @@ func (ug *userGorm) Update(user *User) error {
 func (ug *userGorm) Delete(id uint) error {
 	user := User{Model: gorm.Model{ID: id}}
 	return ug.db.Delete(&user).Error
-}
-func (ug *userGorm) AutoMigrate() error {
-	if err := ug.db.AutoMigrate(&User{}).Error; err != nil {
-		return err
-	}
-	return nil
 }
 
 func (us *userService) Authenticate(email, password string) (*User, error) {
@@ -239,8 +206,6 @@ func (uv *userValidator) bcryptPassword(user *User) error {
 	}
 	user.PasswordHash = string(hashedBytes)
 	user.Password = ""
-	return nil
-
 	return nil
 
 }
