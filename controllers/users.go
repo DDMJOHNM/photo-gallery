@@ -81,7 +81,6 @@ func (u *Users) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	user, err := u.us.Authenticate(form.Email, form.Password)
-
 	if err != nil {
 		switch err {
 		case models.ErrNotFound:
