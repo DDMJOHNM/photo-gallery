@@ -3,6 +3,7 @@ package models
 import "github.com/jinzhu/gorm"
 
 func NewServices(connectionInfo string) (*Services, error) {
+
 	db, err := gorm.Open("postgres", connectionInfo)
 	if err != nil {
 		return nil, err
@@ -10,10 +11,12 @@ func NewServices(connectionInfo string) (*Services, error) {
 	db.LogMode(true)
 
 	return &Services{
-		User:    NewUserService(db),
+		User: NewUserService(db),
+		//Gallery: &galleryGorm{},
 		Gallery: NewGalleryService(db),
 		db:      db,
 	}, nil
+
 }
 
 type Services struct {

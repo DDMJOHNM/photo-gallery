@@ -78,6 +78,13 @@ func main() {
 		"password=%s dbname=%s sslmode=disable",
 		host, port, user, password, dbname)
 
+	// us, err := models.NewUserService(psqlInfo)
+	// if err != nil {
+	// 	panic(err)
+	// }
+	// defer us.Close()
+	// us.DestructiveReset()
+
 	services, err := models.NewServices(psqlInfo)
 	if err != nil {
 		panic(err)
@@ -90,6 +97,7 @@ func main() {
 	contact = views.NewView("bootstrap", "contact")
 
 	staticC := controllers.NewStatic()
+	//usersC := controllers.NewUsers(us)
 	usersC := controllers.NewUsers(services.User)
 	galleriesC := controllers.NewGalleries(services.Gallery)
 

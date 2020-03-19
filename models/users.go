@@ -44,7 +44,6 @@ type User struct {
 
 type userService struct {
 	UserDB
-	db *gorm.DB
 }
 
 type userGorm struct {
@@ -66,6 +65,10 @@ type UserDB interface {
 	Create(user *User) error
 	Update(user *User) error
 	Delete(id uint) error
+
+	//Close() error
+	//AutoMigrate() error
+	//DestructiveReset() error
 }
 
 type UserService interface {
@@ -97,6 +100,19 @@ func first(db *gorm.DB, dst interface{}) error {
 	return err
 }
 
+// func NewUserGorm(connectionInfo string) (*userGorm, error) {
+// 	db, err := gorm.Open("postgres", connectionInfo)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	db.LogMode(true)
+
+// 	db.AutoMigrate(&User{})
+// 	return &userGorm{
+// 		db: db,
+// 	}, nil
+// }
+
 func newUserValidator(udb UserDB, hmac hash.HMAC) *userValidator {
 	return &userValidator{
 		UserDB: udb,
@@ -106,18 +122,31 @@ func newUserValidator(udb UserDB, hmac hash.HMAC) *userValidator {
 	}
 }
 
-func (us *userService) Close() error {
-	return us.Close()
-}
+// func NewUserService(connectionInfo string) (UserService, error) {
+// 	ug, err := NewUserGorm(connectionInfo)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	hmac := hash.NewHMAC(hmacSecretKey)
+// 	uv := newUserValidator(ug, hmac)
+// 	return &userService{
+// 		UserDB: uv,
+// 	}, nil
+// }
 
 func NewUserService(db *gorm.DB) UserService {
-	ug := &userGorm{}
-	//don't need to worry about this as is already done with original db connection
-	//hmac := hash.NewHMAC(hmacSecretKey)
-	//uv := newUserValidator(ug, hmac)
+
+	var udb UserDB
+	ug := &userGorm{udb, db}
+	hmac := hash.NewHMAC(hmacSecretKey)
+	uv := newUserValidator(ug, hmac)
 	return &userService{
-		UserDB: ug,
+		UserDB: uv,
 	}
+}
+
+func (us *userService) Close() error {
+	return us.Close()
 }
 
 func (ug *userGorm) ByID(id uint) (*User, error) {
@@ -206,6 +235,8 @@ func (uv *userValidator) bcryptPassword(user *User) error {
 	}
 	user.PasswordHash = string(hashedBytes)
 	user.Password = ""
+	return nil
+
 	return nil
 
 }
