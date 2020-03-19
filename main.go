@@ -7,6 +7,7 @@ import (
 
 	"./controllers"
 	"./hash"
+	"./middleware"
 	"./models"
 	"./views"
 	"github.com/gorilla/mux"
@@ -101,12 +102,19 @@ func main() {
 	usersC := controllers.NewUsers(services.User)
 	galleriesC := controllers.NewGalleries(services.Gallery)
 
+	requireUserMw := middleware.RequireUser{
+		UserService: services.User,
+	}
+
+	newGallery := requireUserMw.Apply(galleriesC.New)
+	createGallery := requireUserMw.ApplyFn(galleriesC.Create)
+
 	//var h http.Handler = http.HandlerFunc(home)
 	r := mux.NewRouter()
 	r.Handle("/", staticC.Home).Methods("GET")
 	r.Handle("/contact", staticC.Contact).Methods("GET")
-	r.Handle("/galleries/new", galleriesC.New).Methods("GET")
-	r.HandleFunc("/galleries", galleriesC.Create).Methods("POST")
+	r.Handle("/galleries/new", newGallery).Methods("GET")
+	r.HandleFunc("/galleries", createGallery).Methods("POST")
 	r.HandleFunc("/signup", usersC.New).Methods("GET")
 	r.HandleFunc("/signup", usersC.Create).Methods("POST")
 	r.Handle("/login", usersC.LoginView).Methods("GET")
