@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"../context"
 	"../models"
 	"../views"
 )
@@ -25,6 +26,7 @@ func NewGalleries(gs models.GalleryService) *Galleries {
 }
 
 func (g *Galleries) Create(w http.ResponseWriter, r *http.Request) {
+
 	var vd views.Data
 	var form GalleryForm
 	if err := parseForm(r, &form); err != nil {
@@ -32,9 +34,13 @@ func (g *Galleries) Create(w http.ResponseWriter, r *http.Request) {
 		g.New.Render(w, vd)
 		return
 	}
+
+	user := context.User(r.Context())
+
 	gallery := models.Gallery{
 		Title: form.Title,
 	}
+
 	if err := g.gs.Create(&gallery); err != nil {
 		vd.SetAlert(err)
 		g.New.Render(w, vd)
