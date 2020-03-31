@@ -15,10 +15,6 @@ type RequireUser struct {
 func (mw *RequireUser) ApplyFn(next http.HandlerFunc) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
-		ctx := r.Context()
-		ctx = context.WithUser(ctx, user)
-		r = r.withContext(ctx)
-
 		cookie, err := r.Cookie("remember_token")
 		if err != nil {
 			http.Redirect(w, r, "/login", http.StatusFound)
@@ -29,6 +25,13 @@ func (mw *RequireUser) ApplyFn(next http.HandlerFunc) http.HandlerFunc {
 			return
 		}
 		fmt.Println("User found", user)
+
+		ctx := r.Context()
+		ctx = context.WithUser(ctx, user)
+		r = r.WithContext(ctx)
+
+		fmt.Println(r)
+
 		next(w, r)
 	})
 }

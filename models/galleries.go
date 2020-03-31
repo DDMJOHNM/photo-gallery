@@ -1,6 +1,10 @@
 package models
 
-import "github.com/jinzhu/gorm"
+import (
+	"fmt"
+
+	"github.com/jinzhu/gorm"
+)
 
 var _ GalleryDB = &galleryGorm{}
 
@@ -39,15 +43,22 @@ type galleryGorm struct {
 
 type galleryValFn func(*Gallery) error
 
+func (gg *galleryGorm) Create(gallery *Gallery) error {
+	return gg.db.Create(gallery).Error
+}
+
 func (gv *galleryValidator) Create(gallery *Gallery) error {
 
 	err := runGalleryValFns(gallery,
 		gv.userIDRequired,
 		gv.titleRequired)
 	if err != nil {
+		fmt.Print(err.Error())
 		return err
 	}
+
 	return gv.GalleryDB.Create(gallery)
+
 }
 
 func NewGalleryService(db *gorm.DB) GalleryService {
