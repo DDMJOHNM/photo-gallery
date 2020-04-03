@@ -91,12 +91,13 @@ func main() {
 		panic(err)
 	}
 
+	r := mux.NewRouter()
+
 	defer services.Close()
 	services.AutoMigrate()
 
 	home = views.NewView("bootstrap", "home")
 	contact = views.NewView("bootstrap", "contact")
-
 	staticC := controllers.NewStatic()
 	//usersC := controllers.NewUsers(us)
 	usersC := controllers.NewUsers(services.User)
@@ -110,7 +111,7 @@ func main() {
 	createGallery := requireUserMw.ApplyFn(galleriesC.Create)
 
 	//var h http.Handler = http.HandlerFunc(home)
-	r := mux.NewRouter()
+
 	r.Handle("/", staticC.Home).Methods("GET")
 	r.Handle("/contact", staticC.Contact).Methods("GET")
 	r.Handle("/galleries/new", newGallery).Methods("GET")
@@ -120,6 +121,7 @@ func main() {
 	r.Handle("/login", usersC.LoginView).Methods("GET")
 	r.HandleFunc("/login", usersC.Login).Methods("POST")
 	r.HandleFunc("/cookietest", usersC.CookieTest).Methods("GET")
+	r.HandleFunc("/galleries/{id:[0-9]+}", galleriesC.Show).Methods("GET").Name(controllers.ShowGallery)
 
 	http.ListenAndServe(":3000", r)
 
