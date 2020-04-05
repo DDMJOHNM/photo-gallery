@@ -1,16 +1,16 @@
 ## Photo Gallery
 
-Building an Authentication system using bcyrpt
+- Building an authentication system using bcyrpt
 
-Session managment using hmac 
+- Session managment using hmac 
 
-Basic Crud App to upload images and create edit and delete galleries
+- Basic crud app to upload images and create edit and delete galleries
 
-Gorilla Routing library 
+- Gorilla Routing library 
 
-Gorm Library 
+- Gorm Library 
 
-Docker Postgres Image 
+- Docker Postgres Image 
 
 ### Local Development 
 
