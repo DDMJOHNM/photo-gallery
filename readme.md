@@ -1,6 +1,6 @@
 ## Photo Gallery
 
-- Building an authentication system using bcyrpt
+- Building an authentication system using bcrypt
 
 - Session managment using hmac 
 
