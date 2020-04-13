@@ -160,3 +160,27 @@ func (g Galleries) Update(w http.ResponseWriter, r *http.Request) {
 	g.EditView.Render(w, vd)
 
 }
+
+func (g *Galleries) Delete(w http.ResponseWriter, r *http.Request) {
+	gallery, err := g.galleryByID(w, r)
+	if err != nil {
+		return
+	}
+
+	user := context.User(r.Context())
+	if gallery.UserID != user.ID {
+		http.Error(w, "You do not have permission tom edit this gallery", http.StatusForbidden)
+		return
+	}
+
+	var vd views.Data
+	err = g.gs.Delete(gallery.ID)
+	if err != nil {
+		vd.SetAlert(err)
+		vd.Yield = gallery
+		g.EditView.Render(w, vd)
+		return
+	}
+
+	fmt.Fprintf(w, "Successfully Deleted")
+}
