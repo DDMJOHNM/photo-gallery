@@ -1,6 +1,10 @@
 package views
 
-import "log"
+import (
+	"log"
+
+	"../models"
+)
 
 const (
 	AlertLvlError   = "danger"
@@ -12,6 +16,7 @@ const (
 
 type Data struct {
 	Alert *Alert
+	User  *models.User
 	Yield interface{}
 }
 
