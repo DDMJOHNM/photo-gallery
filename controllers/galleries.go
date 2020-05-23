@@ -2,7 +2,11 @@ package controllers
 
 import (
 	"fmt"
+	"io"
+	"mime/multipart"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strconv"
 
 	"../context"
@@ -17,6 +21,10 @@ const (
 	EditGallery    = "edit_gallery"
 )
 
+const (
+	maxMultipartMem = 1 << 20
+)
+
 type Galleries struct {
 	New       *views.View
 	ShowView  *views.View
@@ -28,6 +36,11 @@ type Galleries struct {
 
 type GalleryForm struct {
 	Title string `schema:"title"`
+}
+
+type Form struct {
+	Value map[string][]string
+	File  map[string][]*multipart.FileHeader
 }
 
 func NewGalleries(gs models.GalleryService, r *mux.Router) *Galleries {
@@ -208,4 +221,70 @@ func (g *Galleries) Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	http.Redirect(w, r, url.Path, http.StatusFound)
+}
+
+func (g *Galleries) ImageUpload(w http.ResponseWriter, r *http.Request) {
+	gallery, err := g.galleryByID(w, r)
+	if err != nil {
+		return
+	}
+	user := context.User(r.Context())
+	if gallery.UserID != user.ID {
+		http.Error(w, "Gallery Not Found", http.StatusNotFound)
+		return
+	}
+
+	var vd views.Data
+	vd.Yield = gallery
+	err = r.ParseMultipartForm(maxMultipartMem)
+	if err != nil {
+		vd.SetAlert(err)
+		g.EditView.Render(w, r, vd)
+		return
+	}
+
+	galleryPath := filepath.Join("images", "galleries", fmt.Sprintf("%v", gallery.ID))
+	err = os.Mkdir(galleryPath, 0755)
+	if err != nil {
+		vd.SetAlert(err)
+		g.EditView.Render(w, r, vd)
+		return
+	}
+
+	files := r.MultipartForm.File["images"]
+
+	for _, f := range files {
+		file, err := f.Open()
+		if err != nil {
+			vd.SetAlert(err)
+			g.EditView.Render(w, r, vd)
+			return
+		}
+
+		defer file.Close()
+
+		dst, err := os.Create(filepath.Join(galleryPath, f.Filename))
+		if err != nil {
+			vd.SetAlert(err)
+			g.EditView.Render(w, r, vd)
+			return
+		}
+
+		_, err = io.Copy(dst, file)
+		if err != nil {
+			vd.SetAlert(err)
+			g.EditView.Render(w, r, vd)
+			return
+		}
+
+		defer dst.Close()
+
+		vd.Alert = &views.Alert{
+			Level:   views.AlertLvlSuccess,
+			Message: "Images successfully uploaded",
+		}
+
+		g.EditView.Render(w, r, vd)
+	}
+
 }
