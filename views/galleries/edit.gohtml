@@ -1,7 +1,8 @@
 {{define "yield"}}
 <div class="row">
 <div class="col-md-10 col-md-offset-1">
-<h2>Edit your gallery</h3>
+<h2>Edit your gallery</h2>
+<a href="/galleries/{{.ID}}">View this Gallery</a>
 <hr>
 </div>
 <div class="col-md-12">
@@ -79,12 +80,18 @@ enctype="multipart/form-data" class="form-horizontal">
 {{end}}
 
 {{define "galleryImages"}}
-    <ul>
-        {{range .Images}}
-            <li>
-                <img src="{{.}}" alt="{{.}}"/>
-                
-            </li>
+    {{range .ImagesSplitN 6}}
+        <div class="col-md-4">
+        {{range .}}
+            <a href="{{.}}">
+            <img src="{{.}}" class="thumbnail">
+            </a>
         {{end}}
-    </ul>
+        </div>
+    {{end}}
+<style>
+.thumbnail {
+
+}
+</style>
 {{end}}
