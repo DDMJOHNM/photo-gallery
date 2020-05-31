@@ -2,11 +2,8 @@ package controllers
 
 import (
 	"fmt"
-	"io"
 	"mime/multipart"
 	"net/http"
-	"os"
-	"path/filepath"
 	"strconv"
 
 	"../context"
@@ -31,6 +28,7 @@ type Galleries struct {
 	EditView  *views.View
 	IndexView *views.View
 	gs        models.GalleryService
+	is        models.ImageService
 	r         *mux.Router
 }
 
@@ -43,13 +41,14 @@ type Form struct {
 	File  map[string][]*multipart.FileHeader
 }
 
-func NewGalleries(gs models.GalleryService, r *mux.Router) *Galleries {
+func NewGalleries(gs models.GalleryService, is models.ImageService, r *mux.Router) *Galleries {
 	return &Galleries{
 		New:       views.NewView("bootstrap", "galleries/new"),
 		ShowView:  views.NewView("bootstrap", "galleries/show"),
 		EditView:  views.NewView("bootstrap", "galleries/edit"),
 		IndexView: views.NewView("bootstrap", "galleries/index"),
 		gs:        gs,
+		is:        is,
 		r:         r,
 	}
 }
@@ -123,6 +122,10 @@ func (g *Galleries) galleryByID(w http.ResponseWriter, r *http.Request) (*models
 		}
 		return nil, err
 	}
+
+	images, _ := g.is.ByGalleryID(gallery.ID)
+	gallery.Images = images
+
 	return gallery, nil
 }
 
@@ -243,13 +246,13 @@ func (g *Galleries) ImageUpload(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	galleryPath := filepath.Join("images", "galleries", fmt.Sprintf("%v", gallery.ID))
-	err = os.Mkdir(galleryPath, 0755)
-	if err != nil {
-		vd.SetAlert(err)
-		g.EditView.Render(w, r, vd)
-		return
-	}
+	// galleryPath := filepath.Join("images", "galleries", fmt.Sprintf("%v", gallery.ID))
+	// err = os.Mkdir(galleryPath, 0755)
+	// if err != nil {
+	// 	vd.SetAlert(err)
+	// 	g.EditView.Render(w, r, vd)
+	// 	return
+	// }
 
 	files := r.MultipartForm.File["images"]
 
@@ -263,21 +266,28 @@ func (g *Galleries) ImageUpload(w http.ResponseWriter, r *http.Request) {
 
 		defer file.Close()
 
-		dst, err := os.Create(filepath.Join(galleryPath, f.Filename))
+		err = g.is.Create(gallery.ID, file, f.Filename)
 		if err != nil {
 			vd.SetAlert(err)
 			g.EditView.Render(w, r, vd)
 			return
 		}
 
-		_, err = io.Copy(dst, file)
-		if err != nil {
-			vd.SetAlert(err)
-			g.EditView.Render(w, r, vd)
-			return
-		}
+		// dst, err := os.Create(filepath.Join(galleryPath, f.Filename))
+		// if err != nil {
+		// 	vd.SetAlert(err)
+		// 	g.EditView.Render(w, r, vd)
+		// 	return
+		// }
 
-		defer dst.Close()
+		// _, err = io.Copy(dst, file)
+		// if err != nil {
+		// 	vd.SetAlert(err)
+		// 	g.EditView.Render(w, r, vd)
+		// 	return
+		// }
+
+		// defer dst.Close()
 
 		vd.Alert = &views.Alert{
 			Level:   views.AlertLvlSuccess,

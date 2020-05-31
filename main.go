@@ -100,7 +100,7 @@ func main() {
 	staticC := controllers.NewStatic()
 	//usersC := controllers.NewUsers(us)
 	usersC := controllers.NewUsers(services.User)
-	galleriesC := controllers.NewGalleries(services.Gallery, r)
+	galleriesC := controllers.NewGalleries(services.Gallery, services.Image, r)
 
 	userMw := middleware.User{
 		UserService: services.User,
@@ -137,6 +137,9 @@ func main() {
 		Methods("GET").
 		Name(controllers.EditGallery)
 	r.HandleFunc("/galleries/{id:[0-9]+}/images", requireUserMw.ApplyFn(galleriesC.ImageUpload)).Methods("POST")
+
+	imageHandler := http.FileServer(http.Dir("./images/"))
+	r.PathPrefix("/images/").Handler(http.StripPrefix("/images/", imageHandler))
 	http.ListenAndServe(":3000", userMw.Apply(r))
 
 }

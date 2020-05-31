@@ -79,5 +79,12 @@ enctype="multipart/form-data" class="form-horizontal">
 {{end}}
 
 {{define "galleryImages"}}
-<p>Coming soon...</p>
+    <ul>
+        {{range .Images}}
+            <li>
+                <img src="{{.}}" alt="{{.}}"/>
+                
+            </li>
+        {{end}}
+    </ul>
 {{end}}
