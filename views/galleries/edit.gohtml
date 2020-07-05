@@ -39,7 +39,7 @@ Images
 {{define "editGalleryForm"}}
 <form action="/galleries/{{.ID}}/update" method="POST"
 class="form-horizontal">
-<input type="hidden" value={{csrfField}} />
+{{csrfField}} 
 <div class="form-group">
 <label for="title" class="col-md-1 control-label">Title</label>
 <div class="col-md-10">
@@ -96,6 +96,7 @@ enctype="multipart/form-data" class="form-horizontal">
 <style>
 .thumbnail {
 margin-bottom: 6px;
+ width: 100%;
 }
 .btn-delete {
 margin-bottom: 6px;
