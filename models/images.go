@@ -5,6 +5,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"net/url"
 )
 
 type imageService struct {
@@ -21,13 +22,20 @@ type ImageService interface {
 	Delete(i *Image) error
 }
 
+func (i *Image) Path() string { 
+	temp := url.URL{
+	Path: "/" + i.RelativePath(), 
+	}
+	return temp.String() 
+}
+
 func (is *imageService) Delete(i *Image) error {
 	return os.Remove(i.RelativePath())
 }
 
-func (i *Image) Path() string {
-	return "/" + i.RelativePath()
-}
+// func (i *Image) Path() string {
+// 	return "/" + i.RelativePath()
+// }
 
 func (i *Image) RelativePath() string {
 	galleryID := fmt.Sprintf("%v", i.GalleryID)

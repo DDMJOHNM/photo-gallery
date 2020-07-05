@@ -3,6 +3,7 @@ package middleware
 import (
 	"fmt"
 	"net/http"
+	"strings"
 
 	"../context"
 	"../models"
@@ -44,6 +45,13 @@ func (mw *RequireUser) Apply(next http.Handler) http.HandlerFunc {
 }
 func (mw *RequireUser) ApplyFn(next http.HandlerFunc) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		path := r.URL.Path
+
+		if strings.HasPrefix(path,"/assets/") || strings.HasPrefix(path,"/images/"){
+			next(w,r)
+			return
+		}
+
 		user := context.User(r.Context())
 		if user == nil {
 			fmt.Println(user)

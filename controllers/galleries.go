@@ -325,12 +325,20 @@ func (g *Galleries) ImageUpload(w http.ResponseWriter, r *http.Request) {
 
 		// defer dst.Close()
 
-		vd.Alert = &views.Alert{
-			Level:   views.AlertLvlSuccess,
-			Message: "Images successfully uploaded",
-		}
+		// vd.Alert = &views.Alert{
+		// 	Level:   views.AlertLvlSuccess,
+		// 	Message: "Images successfully uploaded",
+		// }
 
-		g.EditView.Render(w, r, vd)
+		// g.EditView.Render(w, r, vd)
+
+		url, err := g.r.Get(EditGallery).URL("id",fmt.Sprintf("%v", gallery.ID))
+		if err != nil{
+			http.Redirect(w,r,"galleries", http.StatusFound)
+			return
+		}	
+
+		http.Redirect(w,r,url.Path,http.StatusFound)
 	}
 
 }

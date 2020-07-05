@@ -106,7 +106,7 @@ margin-bottom: 6px;
 {{end}}
 
 {{define "deleteImageForm"}}
-<form action="/galleries/{{.GalleryID}}/images/{{.Filename}}/delete" method="POST">
+<form action="/galleries/{{.GalleryID}}/images/{{pathEscape .Filename}}/delete" method="POST">
 {{csrfField}}
 <button type="submit" class="btn btn-default btn-delete">
 
