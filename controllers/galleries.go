@@ -342,3 +342,4 @@ func (g *Galleries) ImageUpload(w http.ResponseWriter, r *http.Request) {
 	}
 
 }
+

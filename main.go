@@ -45,13 +45,13 @@ func createOrder(db *gorm.DB, user User, amount int, desc string) {
 	}
 }
 
-const (
-	host     = "localhost"
-	port     = 5432
-	user     = "postgres"
-	password = "secret"
-	dbname   = "testgallerydb"
-)
+// const (
+// 	host     = "localhost"
+// 	port     = 5432
+// 	user     = "postgres"
+// 	password = "secret"
+// 	dbname   = "testgallerydb"
+// )
 
 type User struct {
 	gorm.Model
@@ -67,18 +67,75 @@ type Order struct {
 	Description string
 }
 
+type PostgresConfig struct{
+	Host string `json:"host"`
+	Port int `json:"port"`
+	User string `json:"user"`
+	Password string `json:"password"`
+	Name string `json:"name"`
+	Pepper: "secret-random-string", 
+	HMACKey: "secret-hmac-key",
+}
+
+type Config struct{
+	Port int
+	Env string
+	Pepper string `json:"pepper"` 
+	HMACKey string `json:"hmac_key"`
+}
+
+func (c Config) isProd() bool{
+	return c.Env == "prod"
+}
+
+func DefaultConfig() Config{
+	return Config{
+		Port :3000,
+		Env : "dev",
+	}
+}
+
+func (c PostgresConfig) Dialect() string{
+	return "postgres"
+}
+
+func (c PostgresConfig) ConnectionInfo() string{
+	if c.Password == ""{
+		return fmt.Sprintf("host=%s port=%d user=%s "+
+		"password=%s dbname=%s sslmode=disable",
+		c.Host, c.Port, c.User, c.Password, c.Name)
+	}
+
+	 return fmt.Sprintf("host=%s port=%d user=%s "+
+	 "password=%s dbname=%s sslmode=disable",
+	 c.Host, c.Port, c.User, c.Password, c.Name)
+}
+
+func DefaultPostgresConfig() PostgresConfig {
+	return PostgresConfig{
+		Host: "localhost",
+		Port: 5432,	
+		User: "postgres",
+		Password: "secret",
+		Name: "testgallerydb",
+	}
+}
+
 func main() {
 
 	//fmt.Println(rand.String(10))
 	//fmt.Println(rand.RememberToken())
 
+	cfg:= DefaultConfig()
+	dbCfg := DefaultPostgresConfig()
+
 	hmac := hash.NewHMAC("my-secret-key")
 
 	fmt.Println(hmac.Hash("this is my string to hash"))
 
-	psqlInfo := fmt.Sprintf("host=%s port=%d user=%s "+
-		"password=%s dbname=%s sslmode=disable",
-		host, port, user, password, dbname)
+	//  psqlInfo := fmt.Sprintf("host=%s port=%d user=%s "+
+	//  	"password=%s dbname=%s sslmode=disable",
+	//  	host, port, user, password, dbname)
 
 	// us, err := models.NewUserService(psqlInfo)
 	// if err != nil {
@@ -87,11 +144,10 @@ func main() {
 	// defer us.Close()
 	// us.DestructiveReset()
 
-	services, err := models.NewServices(psqlInfo)
+	services, err := models.NewServices(dbCfg.Dialect(),dbCfg.ConnectionInfo())
 	if err != nil {
 		panic(err)
 	}
-
 	r := mux.NewRouter()
 
 	defer services.Close()
@@ -156,8 +212,9 @@ func main() {
 	assetHandler := http.FileServer(http.Dir("./public/"))
 	r.PathPrefix("/assets/").Handler(assetHandler)
 	
+	fmt.Printf("Starting the server on :%d...\n", cfg.Port)
 	http.ListenAndServe(":3000", csrfMw(userMw.Apply(r)))
 
 }
 
-//201
+//632
