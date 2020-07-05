@@ -3,14 +3,16 @@ package main
 import (
 	"fmt"
 	"net/http"
+	"./rand"
 
 	"./controllers"
 	"./hash"
 	"./middleware"
 	"./models"
 	"./views"
+	"github.com/gorilla/csrf"
 	"github.com/gorilla/mux"
-
+	
 	"github.com/jinzhu/gorm"
 	_ "github.com/lib/pq"
 )
@@ -47,7 +49,7 @@ const (
 	host     = "localhost"
 	port     = 5432
 	user     = "postgres"
-	password = "postgres"
+	password = "secret"
 	dbname   = "testgallerydb"
 )
 
@@ -111,6 +113,14 @@ func main() {
 	newGallery := requireUserMw.Apply(galleriesC.New)
 	createGallery := requireUserMw.ApplyFn(galleriesC.Create)
 
+	isProd := false
+	b, err := rand.Bytes(32)
+	if err != nil{
+		panic(err)
+	}
+
+	csrfMw := csrf.Protect(b,csrf.Secure(isProd))
+
 	//var h http.Handler = http.HandlerFunc(home)
 
 	r.Handle("/", staticC.Home).Methods("GET")
@@ -143,7 +153,10 @@ func main() {
 	r.HandleFunc("/galleries/{id:[0-9]+}/images/{filename}/delete",
 		requireUserMw.ApplyFn(galleriesC.ImageDelete)).
 		Methods("POST")
-	http.ListenAndServe(":3000", userMw.Apply(r))
+	assetHandler := http.FileServer(http.Dir("./public/"))
+	r.PathPrefix("/assets/").Handler(assetHandler)
+	
+	http.ListenAndServe(":3000", csrfMw(userMw.Apply(r)))
 
 }
 

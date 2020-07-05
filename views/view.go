@@ -7,6 +7,8 @@ import (
 	"io"
 	"net/http"
 	"path/filepath"
+	"errors" 
+	"github.com/gorilla/csrf"
 
 	"../context"
 )
@@ -43,7 +45,15 @@ func (v *View) Render(w http.ResponseWriter, r *http.Request, data interface{}) 
 	}
 	vd.User = context.User(r.Context())
 	var buf bytes.Buffer
-	err := v.Template.ExecuteTemplate(&buf, v.Layout, vd)
+
+	csrfField := csrf.TemplateField(r)
+	tpl := v.Template.Funcs(template.FuncMap{
+		"csrfField" : func () template.HTML{
+			return csrfField
+		},
+	})
+
+	err := tpl.ExecuteTemplate(&buf, v.Layout, vd)
 	if err != nil {
 		http.Error(w, "Something went wrong. If the problem "+
 			"persists, please email support@lenslocked.com",
@@ -70,10 +80,17 @@ func NewView(layout string, files ...string) *View {
 
 	files = append(files, layoutFiles()...)
 	fmt.Println(files)
-	t, err := template.ParseFiles(files...)
+	
+	
+	t, err := template.New("").Funcs(template.FuncMap{
+		"csrfField" : func() (template.HTML, error){
+		return "", errors.New("csrfField is not implememnted ")	
+	},}).ParseFiles(files...)
+	
 	if err != nil {
 		panic(err)
 	}
+	
 	return &View{
 		Template: t,
 		Layout:   layout,
