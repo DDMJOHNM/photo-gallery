@@ -5,7 +5,6 @@ import (
 	_ "github.com/jinzhu/gorm/dialects/postgres"
 )
 
-
 type Services struct {
 	Gallery GalleryService
 	User    UserService
@@ -17,14 +16,14 @@ type ServicesConfig func(*Services) error
 
 func NewServices(cfgs ...ServicesConfig) (*Services, error) {
 
-
-	for _, cfgs := range cfgs{
-		if err := cfg(&s); err != nil{
-			return nil , err
+	var s Services
+	for _, cfgs := range cfgs {
+		if err := cfgs(&s); err != nil {
+			return nil, err
 		}
-		
+
 	}
-	
+
 	return &s, nil
 
 	//632
@@ -45,6 +44,42 @@ func NewServices(cfgs ...ServicesConfig) (*Services, error) {
 
 }
 
+func WithGorm(dialect, connectionInfo string) ServicesConfig {
+	return func(s *Services) error {
+		db, err := gorm.Open(dialect, connectionInfo)
+		if err != nil {
+			return err
+		}
+		s.db = db
+		return nil
+	}
+}
+
+func WithLogMode(mode bool) ServicesConfig {
+	return func(s *Services) error {
+		s.db.LogMode(mode)
+		return nil
+	}
+}
+
+func WithUser(pepper, hmacKey string) ServicesConfig {
+	return func(s *Services) error {
+		s.User = NewUserService(s.db, pepper, hmacKey)
+		return nil
+	}
+}
+func WithGallery() ServicesConfig {
+	return func(s *Services) error {
+		s.Gallery = NewGalleryService(s.db)
+		return nil
+	}
+}
+func WithImage() ServicesConfig {
+	return func(s *Services) error {
+		s.Image = NewImageService()
+		return nil
+	}
+}
 
 func (s *Services) Close() error {
 	return s.db.Close()

@@ -10,10 +10,6 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-var userPepper = "secret-random-string"
-
-const hmacSecretKey = "secret-hmac-key"
-
 type modelError string
 
 const (
@@ -45,6 +41,7 @@ type User struct {
 
 type userService struct {
 	UserDB
+	pepper string
 }
 
 type userGorm struct {
@@ -56,6 +53,7 @@ type userValidator struct {
 	UserDB
 	hmac       hash.HMAC
 	emailRegex *regexp.Regexp
+	pepper     string
 }
 
 type UserDB interface {
@@ -114,10 +112,11 @@ func first(db *gorm.DB, dst interface{}) error {
 // 	}, nil
 // }
 
-func newUserValidator(udb UserDB, hmac hash.HMAC) *userValidator {
+func newUserValidator(udb UserDB, hmac hash.HMAC, pepper string) *userValidator {
 	return &userValidator{
 		UserDB: udb,
 		hmac:   hmac,
+		pepper: pepper,
 		emailRegex: regexp.MustCompile(
 			`^[a-z0-9._%+\-]+@[a-z0-9.\-]+\.[a-z]{2,16}$`),
 	}
@@ -135,14 +134,15 @@ func newUserValidator(udb UserDB, hmac hash.HMAC) *userValidator {
 // 	}, nil
 // }
 
-func NewUserService(db *gorm.DB) UserService {
+func NewUserService(db *gorm.DB, pepper, hmacKey string) UserService {
 
 	var udb UserDB
 	ug := &userGorm{udb, db}
-	hmac := hash.NewHMAC(hmacSecretKey)
-	uv := newUserValidator(ug, hmac)
+	hmac := hash.NewHMAC(hmacKey)
+	uv := newUserValidator(ug, hmac, pepper)
 	return &userService{
 		UserDB: uv,
+		pepper: pepper,
 	}
 }
 
@@ -200,7 +200,7 @@ func (us *userService) Authenticate(email, password string) (*User, error) {
 
 	err = bcrypt.CompareHashAndPassword(
 		[]byte(foundUser.PasswordHash),
-		[]byte(password+userPepper))
+		[]byte(password+us.pepper))
 
 	switch err {
 	case nil:
@@ -228,7 +228,7 @@ func (uv *userValidator) bcryptPassword(user *User) error {
 	if user.Password == "" {
 		return nil
 	}
-	pwBytes := []byte(user.Password + userPepper)
+	pwBytes := []byte(user.Password + uv.pepper)
 	hashedBytes, err := bcrypt.GenerateFromPassword(
 		pwBytes, bcrypt.DefaultCost)
 	if err != nil {
@@ -236,8 +236,6 @@ func (uv *userValidator) bcryptPassword(user *User) error {
 	}
 	user.PasswordHash = string(hashedBytes)
 	user.Password = ""
-	return nil
-
 	return nil
 
 }
