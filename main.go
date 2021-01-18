@@ -195,6 +195,8 @@ func main() {
 		requireUserMw.ApplyFn(galleriesC.Index)).
 		Methods("GET").
 		Name(controllers.IndexGalleries)
+	r.Handle("/logout", requireUserMw.ApplyFn(usersC.Logout)).Methods("POST")
+
 	r.HandleFunc("/galleries/{id:[0-9]+}/edit",
 		requireUserMw.ApplyFn(galleriesC.Edit)).
 		Methods("GET").
