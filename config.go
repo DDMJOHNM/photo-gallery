@@ -12,6 +12,13 @@ type Config struct {
 	Pepper   string         `json:"pepper"`
 	HMACKey  string         `json:"hmac_key"`
 	Database PostgresConfig `json:"database"`
+	Mailgun  MailGunConfig  `json:"mailgun"`
+}
+
+type MailGunConfig struct {
+	APIKey       string `json:"api_key"`
+	PublicAPIKey string `json:"public_api_key"`
+	Domain       string `json:"domain"`
 }
 
 func DefaultConfig() Config {

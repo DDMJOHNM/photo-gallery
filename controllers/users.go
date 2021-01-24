@@ -68,7 +68,7 @@ func (u *Users) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	http.Redirect(w, r, "/galleries", http.StatusNotFound)
+	http.Redirect(w, r, "/galleries", http.StatusFound)
 
 }
 
@@ -102,7 +102,11 @@ func (u *Users) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	http.Redirect(w, r, "/galleries", http.StatusNotFound)
+	alert := views.Alert{
+		Level: views.AlertLvlSuccess, Message: "Welcome to your Photo Gallery",
+	}
+
+	views.RedirectAlert(w, r, "/galleries", http.StatusFound, alert)
 }
 
 func (u *Users) signIn(w http.ResponseWriter, user *models.User) error {
@@ -124,8 +128,8 @@ func (u *Users) signIn(w http.ResponseWriter, user *models.User) error {
 			HttpOnly: true,
 		}
 		http.SetCookie(w, &cookie)
-
 	}
+
 	return nil
 }
 

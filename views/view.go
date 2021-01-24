@@ -8,8 +8,9 @@ import (
 	"net/http"
 	"net/url"
 
+	"errors"
 	"path/filepath"
-	"errors" 
+
 	"github.com/gorilla/csrf"
 
 	"../context"
@@ -45,12 +46,18 @@ func (v *View) Render(w http.ResponseWriter, r *http.Request, data interface{}) 
 			Yield: data,
 		}
 	}
+
+	if alert := getAlert(r); alert != nil {
+		vd.Alert = alert
+		clearAlert(w)
+	}
+
 	vd.User = context.User(r.Context())
 	var buf bytes.Buffer
 
 	csrfField := csrf.TemplateField(r)
 	tpl := v.Template.Funcs(template.FuncMap{
-		"csrfField" : func () template.HTML{
+		"csrfField": func() template.HTML {
 			return csrfField
 		},
 	})
@@ -82,21 +89,20 @@ func NewView(layout string, files ...string) *View {
 
 	files = append(files, layoutFiles()...)
 	fmt.Println(files)
-	
-	
+
 	t, err := template.New("").Funcs(template.FuncMap{
-		"csrfField" : func() (template.HTML, error){
-			return "", errors.New("csrfField is not implememnted ")	
-		},	
-		"pathEscape" : func(s string) string{
+		"csrfField": func() (template.HTML, error) {
+			return "", errors.New("csrfField is not implememnted ")
+		},
+		"pathEscape": func(s string) string {
 			return url.PathEscape(s)
 		},
 	}).ParseFiles(files...)
-	
+
 	if err != nil {
 		panic(err)
 	}
-	
+
 	return &View{
 		Template: t,
 		Layout:   layout,
